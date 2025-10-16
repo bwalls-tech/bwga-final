@@ -244,11 +244,6 @@ const ReportGenerator: React.FC<ReportGeneratorProps> = ({ params, onParamsChang
                             <textarea value={params.idealPartnerProfile} onChange={e => handleChange('idealPartnerProfile', e.target.value)} rows={4} className={inputStyles} placeholder="Describe your ideal partner in detail (e.g., size, technologies, target markets)..." />
                         </div>
                         
-                        <div className="mt-6">
-                            <label className={labelStyles}>Prioritized Local Context (Optional)</label>
-                            <textarea value={params.localContext} onChange={e => handleChange('localContext', e.target.value)} rows={4} className={inputStyles} placeholder="Provide specific local data points for the AI to prioritize, e.g., 'Leverage the new logistics hub at Clark Freeport Zone,' 'Focus on graduates from the University of the Philippines Los Baños,' 'Note the 10-year tax holiday for renewable energy projects.'" />
-                        </div>
-
                         <div className="mt-6 pt-6 border-t border-nexus-border-medium">
                             <h4 className="text-lg font-semibold text-nexus-text-primary mb-3">Report Tiers (The 'How') *</h4>
                             <p className="text-nexus-text-secondary mb-4 text-sm">Select one or more report types. The AI will synthesize them into a single, comprehensive blueprint.</p>
@@ -369,7 +364,6 @@ const ReportGenerator: React.FC<ReportGeneratorProps> = ({ params, onParamsChang
                                 <SummaryItem label="Target" value={`${params.region} — ${params.industry.filter(i=>i !== 'Custom').join(', ')}`} />
                                 {params.industry.includes('Custom') && <SummaryItem label="Custom Industry" value={params.customIndustry} />}
                                 <SummaryItem label="Core Objective" value={<p className="italic">"{params.problemStatement}"</p>} />
-                                {params.localContext && <SummaryItem label="Local Context" value={<p className="italic">"{params.localContext}"</p>} />}
                                 <SummaryItem label="AI Personas" value={<ul className="list-disc list-inside">{params.aiPersona.filter(p=>p !== 'Custom').map(p => <li key={p}>{p}</li>)}</ul>} />
                                 {params.aiPersona.includes('Custom') && <SummaryItem label="Custom Persona" value={params.customAiPersona} />}
                             </div>

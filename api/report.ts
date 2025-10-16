@@ -161,17 +161,6 @@ export default async function handler(request: Request) {
 
     let sectionCounter = 4;
 
-    // --- Local Context Step ---
-    if (params.localContext && params.localContext.trim()) {
-        prompt += `
-          \n**${sectionCounter}. Prioritized Local Context (CRITICAL):**
-          You MUST prioritize, reference, and incorporate the following user-provided local context into your analysis. This information is considered a primary source of truth for this report:
-          - "${params.localContext}"
-        `;
-        sectionCounter++;
-    }
-    // --- End Local Context ---
-
     const predictiveModuleIds = ['trendForecasting', 'scenarioModeling', 'disruptionAnalysis'];
     const standardModules = params.analyticalModules.filter(m => !predictiveModuleIds.includes(m));
     const predictiveModules = params.analyticalModules.filter(m => predictiveModuleIds.includes(m));

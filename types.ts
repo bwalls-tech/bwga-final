@@ -32,7 +32,6 @@ export interface ReportParameters {
   problemStatement: string;
   analysisTimeframe: string;
   analyticalModules: string[];
-  localContext?: string;
 }
 
 export type ReportSuggestions = Partial<Pick<ReportParameters, 'reportName' | 'region' | 'problemStatement' | 'idealPartnerProfile'>> & {

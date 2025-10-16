@@ -37,7 +37,6 @@ const initialReportParams: ReportParameters = {
     problemStatement: '',
     analysisTimeframe: 'Any Time',
     analyticalModules: [],
-    localContext: '',
 };
 
 function App() {
