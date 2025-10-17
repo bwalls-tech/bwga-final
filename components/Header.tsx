@@ -1,12 +1,7 @@
-
-
-
 import React, { useState, useEffect } from 'react';
-import { NexusLogo } from './Icons.tsx';
-// FIX: Corrected import path
 import type { View } from '../types.ts';
-// FIX: Corrected import path
 import { NAV_ITEMS } from '../constants.tsx';
+import { DataProfessionalIcon } from './Icons.tsx';
 
 interface HeaderProps {
     currentView: View;
@@ -73,10 +68,7 @@ export const Header: React.FC<HeaderProps> = ({ currentView, onViewChange }) => 
                         className="flex items-center gap-4 cursor-pointer group"
                         onClick={() => handleNavClick('mission')}
                     >
-                        <div className="relative">
-                            <div className="absolute inset-0 bg-gradient-to-br from-nexus-accent-gold to-nexus-accent-cyan rounded-full blur-lg opacity-50 group-hover:opacity-75 transition-opacity duration-300"></div>
-                            <NexusLogo className="w-12 h-12 text-nexus-accent-gold relative z-10 group-hover:scale-110 transition-transform duration-300" />
-                        </div>
+                        <DataProfessionalIcon className="w-12 h-12 text-nexus-text-primary relative z-10 group-hover:scale-110 transition-transform duration-300" />
                         <div>
                             <h1 className="text-2xl font-bold bg-gradient-to-r from-nexus-text-primary to-nexus-text-secondary bg-clip-text text-transparent tracking-wide">
                                 BWGA Nexus AI

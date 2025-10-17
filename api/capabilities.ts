@@ -25,6 +25,27 @@ Example Format:
 }
 `;
 
+const RESPONSE_SCHEMA = {
+    type: Type.OBJECT,
+    properties: {
+        greeting: { type: Type.STRING, description: "A brief, welcoming greeting from the AI assistant." },
+        capabilities: {
+            type: Type.ARRAY,
+            description: "A list of the AI's core capabilities.",
+            items: {
+                type: Type.OBJECT,
+                properties: {
+                    title: { type: Type.STRING, description: "The title of the capability." },
+                    description: { type: Type.STRING, description: "A short description of the capability." },
+                    prompt: { type: Type.STRING, description: "An example prompt a user can try." }
+                },
+                required: ['title', 'description', 'prompt']
+            }
+        }
+    },
+    required: ['greeting', 'capabilities']
+};
+
 export default async function handler(request: Request) {
     if (request.method !== 'GET') {
         return new Response(JSON.stringify({ error: 'Method Not Allowed' }), { status: 405 });
@@ -41,6 +62,8 @@ export default async function handler(request: Request) {
             contents: PROMPT,
             config: {
                 systemInstruction: SYSTEM_INSTRUCTION,
+                responseMimeType: "application/json",
+                responseSchema: RESPONSE_SCHEMA,
             },
         });
 

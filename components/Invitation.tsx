@@ -1,7 +1,6 @@
 
 import React from 'react';
 import Card from './common/Card.tsx';
-// FIX: Corrected import path for PartnerIcon
 import { PartnerIcon } from './Icons.tsx';
 
 const StepIcon: React.FC<{ path: string }> = ({ path }) => (

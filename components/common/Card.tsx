@@ -1,7 +1,6 @@
 
 import React from 'react';
 
-// FIX: Added 'style' prop to allow passing inline styles to the card component.
 interface CardProps {
   children: React.ReactNode;
   className?: string;

@@ -1,4 +1,4 @@
-import type { ReportParameters, SymbiosisContext, ChatMessage, LiveOpportunityItem, LiveOpportunitiesResponse, InquireResult, ReportSuggestions, AiCapabilitiesResponse, EconomicData, PredictiveAnalysis, FeedPost } from '../types.ts';
+import type { ReportParameters, SymbiosisContext, ChatMessage, LiveOpportunityItem, LiveOpportunitiesResponse, InquireResult, ReportSuggestions, AiCapabilitiesResponse, EconomicData, PredictiveAnalysis, FeedPost, ResearchAndScopeResult, RROI_Index, TPT_Simulation, SEAM_Blueprint } from '../types.ts';
 import { MOCK_OPPORTUNITIES } from '../data/mockOpportunities.ts';
 
 // --- Report Generation ---
@@ -118,19 +118,60 @@ export async function generateLetterStream(params: ReportParameters): Promise<Re
     return response.body;
 }
 
-// --- Inquire ---
-export async function fetchInquireSuggestions(query: string, fileContent: string | null): Promise<ReportSuggestions> {
-    const response = await fetch('/api/inquire', {
+// --- Inquire / Nexus Brain ---
+
+export async function fetchResearchAndScope(query: string, fileContent: string | null): Promise<ResearchAndScopeResult> {
+    const response = await fetch('/api/research-and-scope', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ query, fileContent }),
     });
     if (!response.ok) {
-        const errorData = await response.json();
-        throw new Error(errorData.error || 'Failed to get suggestions from Inquire AI.');
+        const errorData = await response.json().catch(() => ({ error: 'An unknown API error occurred.'}));
+        throw new Error(errorData.error || 'Failed to get a response from the research and scope API.');
     }
     return await response.json();
 }
+
+export async function diagnoseRegion(region: string, objective: string): Promise<RROI_Index> {
+    const response = await fetch('/api/nexus-brain', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ action: 'diagnose', payload: { region, objective } }),
+    });
+    if (!response.ok) {
+        const errorData = await response.json();
+        throw new Error(errorData.error || 'Failed to get a diagnostic response from the Nexus Brain.');
+    }
+    return await response.json();
+}
+
+export async function simulatePathway(rroi: RROI_Index, intervention: string): Promise<TPT_Simulation> {
+    const response = await fetch('/api/nexus-brain', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ action: 'simulate', payload: { rroi, intervention } }),
+    });
+    if (!response.ok) {
+        const errorData = await response.json();
+        throw new Error(errorData.error || 'Failed to get a simulation response from the Nexus Brain.');
+    }
+    return await response.json();
+}
+
+export async function architectEcosystem(rroi: RROI_Index, objective: string): Promise<SEAM_Blueprint> {
+    const response = await fetch('/api/nexus-brain', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ action: 'architect', payload: { rroi, objective } }),
+    });
+    if (!response.ok) {
+        const errorData = await response.json();
+        throw new Error(errorData.error || 'Failed to get an ecosystem architecture from the Nexus Brain.');
+    }
+    return await response.json();
+}
+
 
 export async function fetchCapabilities(): Promise<AiCapabilitiesResponse> {
     const response = await fetch('/api/capabilities');
@@ -153,6 +194,25 @@ export async function fetchRegionalCities(country: string): Promise<string[]> {
         throw new Error(`Failed to fetch cities for ${country}.`);
     }
     return response.json();
+}
+
+export async function refineObjectiveWithContext(objective: string, context: EconomicData): Promise<string> {
+    const contextString = Object.entries(context)
+        .map(([key, value]) => value ? `${key}: ${value.value} (${value.year})` : null)
+        .filter(Boolean)
+        .join(', ');
+
+    const response = await fetch('/api/refine-objective', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ question: objective, answer: contextString }),
+    });
+
+    if (!response.ok) {
+        throw new Error('Failed to get response from AI to refine objective.');
+    }
+    const data = await response.json();
+    return data.refinedObjective;
 }
 
 

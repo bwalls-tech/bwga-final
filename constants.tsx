@@ -1,9 +1,9 @@
 import React from 'react';
-import { MissionIcon, OpportunitiesIcon, ReportIcon, ComplianceIcon, VentureCapitalistIcon, EconomistIcon, GeopoliticalStrategistIcon, EsgAnalystIcon, InfrastructurePlannerIcon, SupplyChainAnalystIcon, WorkforceSpecialistIcon, TechnologyIcon, RenewableEnergyIcon, InfrastructureIcon, HealthcareIcon, ManufacturingIcon, AgricultureIcon, FinanceIcon, MiningIcon, LogisticsIcon, TourismIcon, EducationIcon, MatchMakerIcon } from './components/Icons.tsx';
+import { MissionIcon, OpportunitiesIcon, ReportIcon, ComplianceIcon, VentureCapitalistIcon, EconomistIcon, GeopoliticalStrategistIcon, EsgAnalystIcon, InfrastructurePlannerIcon, SupplyChainAnalystIcon, WorkforceSpecialistIcon, TechnologyIcon, RenewableEnergyIcon, InfrastructureIcon, HealthcareIcon, ManufacturingIcon, AgricultureIcon, FinanceIcon, MiningIcon, LogisticsIcon, TourismIcon, EducationIcon, MatchMakerIcon, ManualIcon } from './components/Icons.tsx';
 import type { View, ReportParameters, AnalyticalModule, AnalyticalModuleGroup } from './types.ts';
 
 export const NAV_ITEMS: { id: View, title: string, description: string, icon: React.FC<any> }[] = [
-    { id: 'mission', title: 'Mission & Method', description: 'Our Purpose & Process', icon: MissionIcon },
+    { id: 'mission', title: 'Mission', description: 'Our Purpose & Process', icon: MissionIcon },
     { id: 'opportunities', title: 'Data Hub', description: 'Live Intelligence', icon: OpportunitiesIcon },
     { id: 'report', title: 'Workspace', description: 'Inquire & Report', icon: ReportIcon },
     { id: 'compliance', title: 'Compliance', description: 'Data & Security', icon: ComplianceIcon },
@@ -15,7 +15,6 @@ export const AI_PERSONAS: { id: string, title: string, description: string, icon
     { id: 'Geopolitical Strategist', title: 'Geopolitical Strategist', description: 'Focuses on trade policy, regulatory stability, international relations, and sovereign risk factors.', icon: GeopoliticalStrategistIcon },
     { id: 'ESG Analyst', title: 'ESG Analyst', description: 'Focuses on Environmental, Social, and Governance (ESG) compliance, sustainability, and impact investing.', icon: EsgAnalystIcon },
     { id: 'Infrastructure Planner', title: 'Infrastructure Planner', description: 'Focuses on logistics, utilities, transportation networks, and smart city development.', icon: InfrastructurePlannerIcon },
-    // FIX: Corrected typo in icon name from SupplyChainAnalistIcon to SupplyChainAnalystIcon.
     { id: 'Supply Chain Analyst', title: 'Supply Chain Analyst', description: 'Focuses on value chain mapping, sourcing, logistical bottlenecks, and supply chain resilience.', icon: SupplyChainAnalystIcon },
     { id: 'Workforce Development Specialist', title: 'Workforce Specialist', description: 'Focuses on talent pools, skills gap analysis, education infrastructure, and labor market dynamics.', icon: WorkforceSpecialistIcon },
 ];
@@ -59,9 +58,35 @@ export const DASHBOARD_CATEGORIES = [
   "Infrastructure & Construction"
 ];
 
-export const COUNTRIES = [
-  "United States", "China", "Japan", "Germany", "United Kingdom", "India", "France", "Italy", "Brazil", "Canada", "South Korea", "Australia", "Spain", "Mexico", "Indonesia", "Netherlands", "Saudi Arabia", "Switzerland", "Turkey", "Taiwan", "Poland", "Sweden", "Belgium", "Thailand", "Iran", "Austria", "Norway", "United Arab Emirates", "Nigeria", "Israel", "Argentina", "South Africa", "Ireland", "Malaysia", "Denmark", "Singapore", "Philippines", "Colombia", "Pakistan", "Chile", "Finland", "Bangladesh", "Egypt", "Vietnam", "Romania", "Czech Republic", "Portugal", "Peru", "Greece", "New Zealand", "Qatar", "Kazakhstan", "Iraq", "Hungary", "Algeria", "Ukraine", "Kuwait", "Morocco", "Ecuador", "Slovakia", "Oman", "Angola", "Kenya", "Ethiopia"
-].sort();
+export const REGIONS_AND_COUNTRIES = [
+  {
+    name: "Asia-Pacific",
+    countries: ["Australia", "Bangladesh", "China", "India", "Indonesia", "Japan", "Kazakhstan", "Malaysia", "New Zealand", "Pakistan", "Philippines", "Singapore", "South Korea", "Taiwan", "Thailand", "Vietnam"].sort()
+  },
+  {
+    name: "Europe",
+    countries: ["Austria", "Belgium", "Czech Republic", "Denmark", "Finland", "France", "Germany", "Greece", "Hungary", "Ireland", "Italy", "Netherlands", "Norway", "Poland", "Portugal", "Romania", "Slovakia", "Spain", "Sweden", "Switzerland", "Ukraine", "United Kingdom"].sort()
+  },
+  {
+    name: "Middle East & North Africa",
+    countries: ["Algeria", "Egypt", "Iran", "Iraq", "Israel", "Kuwait", "Morocco", "Oman", "Qatar", "Saudi Arabia", "Turkey", "United Arab Emirates"].sort()
+  },
+  {
+    name: "North America",
+    countries: ["Canada", "Mexico", "United States"].sort()
+  },
+  {
+    name: "South America",
+    countries: ["Argentina", "Brazil", "Chile", "Colombia", "Ecuador", "Peru"].sort()
+  },
+  {
+    name: "Sub-Saharan Africa",
+    countries: ["Angola", "Ethiopia", "Kenya", "Nigeria", "South Africa"].sort()
+  }
+];
+
+export const COUNTRIES = REGIONS_AND_COUNTRIES.flatMap(region => region.countries).sort();
+
 
 export const INDUSTRIES: { id: string, title: string, icon: React.FC<any> }[] = [
     { id: 'Technology & Innovation', title: 'Tech & Innovation', icon: TechnologyIcon },
@@ -93,6 +118,7 @@ export const TIERS_BY_ORG_TYPE: Record<string, { id: string, title: string, desc
     { id: 'SupplyChainGap', title: 'Supply Chain Gap Analysis', desc: 'Deep-dive into a value chain to find critical gaps and investment opportunities.', features: ['Value Chain Mapping', 'Input/Output Analysis', 'Targeted Investor Profiles'] },
     { id: 'RegulatoryBenchmarking', title: 'Regulatory Benchmarking', desc: 'Compares your region’s policies against competitors to identify advantages.', features: ['Comparative Policy Matrix', 'Investor "Pain Point" ID', 'Actionable Reform Ideas'] },
     { id: 'SDGAlignment', title: 'SDG Alignment Report', desc: 'Assesses a project’s alignment with UN SDGs to attract impact-focused investment.', features: ['SDG Target Mapping', 'Impact Measurement Framework', '“Green” Finance Potential'] },
+    { id: 'InfrastructurePlan', title: 'Infrastructure Master Plan', desc: 'Outlines a strategic plan for critical infrastructure development to support economic growth.', features: ['Infrastructure Gap Analysis', 'Project Prioritization Matrix', 'Investment Phasing Plan'] },
   ],
   "Private Enterprise": [
     { id: 'Market Entry', title: 'Market Entry Strategy', desc: 'Assesses a new market and outlines a strategic approach for entry.', features: ['Market Size & Growth', 'Competitive Landscape', 'Regulatory Analysis', 'Go-to-Market Plan'] },
@@ -102,6 +128,7 @@ export const TIERS_BY_ORG_TYPE: Record<string, { id: string, title: string, desc
     { id: 'SiteSelection', title: 'Site Selection Matrix', desc: 'Compares potential locations for a new facility based on critical factors.', features: ['Logistics & Labor Scoring', 'Real Estate & Utility Costs', 'Local Incentive Review'] },
     { id: 'CompetitiveIntel', title: 'Competitive Intelligence', desc: 'Deep-dive on key competitors in a target market to inform strategy.', features: ['Competitor SWOT Analysis', 'Market Positioning Map', 'Implied Strategic Intent'] },
     { id: 'SDGAlignment', title: 'SDG Alignment Report', desc: 'Assesses a project’s alignment with UN SDGs to strengthen ESG credentials.', features: ['SDG Target Mapping', 'Impact Measurement Framework', '“Green” Finance Potential'] },
+    { id: 'GeopoliticalRisk', title: 'Geopolitical Risk Assessment', desc: 'Analyzes the geopolitical landscape of a target market to identify risks and mitigation strategies.', features: ['Political Stability Analysis', 'Regulatory Risk Mapping', 'Supply Chain Vulnerability'] },
   ],
 };
 // Add aliases for different government levels

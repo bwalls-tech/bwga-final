@@ -1,7 +1,5 @@
 import React from 'react';
-// FIX: Changed to default import as Card is a default export.
 import Card from './common/Card.tsx';
-// FIX: Corrected import path for icons
 import { NexusLogo, BlueprintIcon, BriefcaseIcon } from './Icons.tsx';
 import { AnnotatedSampleReport } from './AnnotatedSampleReport.tsx';
 

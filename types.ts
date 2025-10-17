@@ -34,9 +34,14 @@ export interface ReportParameters {
   analyticalModules: string[];
 }
 
-export type ReportSuggestions = Partial<Pick<ReportParameters, 'reportName' | 'region' | 'problemStatement' | 'idealPartnerProfile'>> & {
+export type ReportSuggestions = Partial<Pick<ReportParameters, 'reportName' | 'region' | 'problemStatement' | 'idealPartnerProfile' | 'tier' | 'aiPersona'>> & {
     industry?: string; // Keep as string for simple suggestion
 };
+
+export interface ResearchAndScopeResult {
+    summary: string;
+    suggestions: ReportSuggestions;
+}
 
 
 export interface LiveOpportunityItem {
@@ -173,4 +178,60 @@ export interface PredictiveAnalysis {
   emergingTrends: { trend: string; justification: string; }[];
   futureOpportunities: { opportunity: string; rationale: string; }[];
   potentialDisruptions: { disruption: string; impact: string; }[];
+}
+
+// --- NEXUS BRAIN TYPES V1 ---
+export type NexusBrainAction = 'diagnose' | 'simulate' | 'architect';
+
+// Layer 1: RROI (Diagnostic)
+export interface RROI_Component {
+  name: string;
+  score: number; // 0-100
+  analysis: string;
+}
+export interface RROI_Index {
+  overallScore: number;
+  summary: string;
+  components: {
+    humanCapital: RROI_Component;
+    infrastructure: RROI_Component;
+    agglomeration: RROI_Component;
+    economicComposition: RROI_Component; // Based on LQ and Shift-Share
+    governance: RROI_Component;
+    qualityOfLife: RROI_Component;
+  }
+}
+
+// Layer 2: TPT (Predictive)
+export interface TPT_Simulation {
+  scenario: string;
+  intervention: string;
+  timeline: string;
+  impactAnalysis: string;
+  predictedOutcomes: {
+    metric: string;
+    startValue: number;
+    endValue: number;
+  }[];
+}
+
+// Layer 3: SEAM (Prescriptive)
+export interface EcosystemPartner {
+  type: 'Anchor' | 'Infrastructure' | 'Innovation' | 'Capital' | 'Government' | 'Community';
+  entity: string; // e.g., "Netafim (Israel)"
+  rationale: string;
+}
+export interface SEAM_Blueprint {
+  strategicObjective: string;
+  ecosystemSummary: string;
+  partners: EcosystemPartner[];
+}
+
+// API Response Types
+export type NexusBrainResponse = RROI_Index | TPT_Simulation | SEAM_Blueprint;
+
+export interface NexusBrainState {
+  diagnosis: RROI_Index | null;
+  simulation: TPT_Simulation | null;
+  ecosystem: SEAM_Blueprint | null;
 }

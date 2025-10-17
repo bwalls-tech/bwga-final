@@ -1,10 +1,9 @@
 
 
+
 import React, { useState } from 'react';
-// FIX: Corrected import paths
 import type { FeedPost, LiveOpportunityItem, NewsContent, IndicatorContent, SymbiosisContext } from '../types.ts';
 import { BriefcaseIcon, MegaphoneIcon, ChartBarIcon, ExternalLinkIcon, SymbiosisIcon, AnalyzeIcon, ArrowUpIcon, ArrowDownIcon, BookmarkIcon } from './Icons.tsx';
-// FIX: Changed to default import as Card is a default export.
 import Card from './common/Card.tsx';
 
 const timeAgo = (dateString: string) => {

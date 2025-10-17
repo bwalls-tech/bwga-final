@@ -1,13 +1,11 @@
 
 
+
 import React, { useState, useEffect, useCallback, useMemo, useRef } from 'react';
-// FIX: Changed import to geminiService.ts where the function is now located.
 import { fetchIntelligenceForCategory } from '../services/geminiService.ts';
-// FIX: Imported the newly defined DashboardIntelligence type.
 import type { DashboardIntelligence, SymbiosisContext } from '../types.ts';
 import Loader from './common/Loader.tsx';
 import Card from './common/Card.tsx';
-// FIX: Separated icon and constant imports
 import { DASHBOARD_CATEGORIES } from '../constants.tsx';
 import { ExternalLinkIcon, SymbiosisIcon, AnalyzeIcon } from './Icons.tsx';
 

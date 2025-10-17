@@ -1,11 +1,14 @@
 
-import React, { useState, useEffect, useCallback } from 'react';
-import type { ReportParameters, UserProfile as UserProfileType } from '../types.ts';
+import React, { useState, useEffect, useCallback, useRef } from 'react';
+import type { ReportParameters, UserProfile as UserProfileType, ReportSuggestions } from '../types.ts';
 import { generateReportStream } from '../services/nexusService.ts';
-import { COUNTRIES, INDUSTRIES, AI_PERSONAS, ANALYTICAL_MODULES, ORGANIZATION_TYPES, ANALYTICAL_LENSES, TONES_AND_STYLES, TIERS_BY_ORG_TYPE } from '../constants.tsx';
+import { REGIONS_AND_COUNTRIES, INDUSTRIES, AI_PERSONAS, ORGANIZATION_TYPES, ANALYTICAL_LENSES, TONES_AND_STYLES, TIERS_BY_ORG_TYPE } from '../constants.tsx';
 import Card from './common/Card.tsx';
 import Spinner from './Spinner.tsx';
-import { QuestionMarkCircleIcon, CustomPersonaIcon, CustomIndustryIcon } from './Icons.tsx';
+import { Inquire } from './Inquire.tsx';
+import { CustomPersonaIcon, CustomIndustryIcon, ArrowUpIcon } from './Icons.tsx';
+
+type AiInteractionState = 'idle' | 'welcomed' | 'prompted' | 'answeredPrompt' | 'active';
 
 interface ReportGeneratorProps {
     params: ReportParameters;
@@ -13,6 +16,12 @@ interface ReportGeneratorProps {
     onReportUpdate: (params: ReportParameters, content: string, error: string | null, generating: boolean) => void;
     onProfileUpdate: (profile: UserProfileType) => void;
     isGenerating: boolean;
+    // Props for the Inquire Co-Pilot
+    onApplySuggestions: (suggestions: ReportSuggestions) => void;
+    savedReports: ReportParameters[];
+    onSaveReport: (params: ReportParameters) => void;
+    onLoadReport: (params: ReportParameters) => void;
+    onDeleteReport: (reportName: string) => void;
 }
 
 const WIZARD_STEPS = [
@@ -22,16 +31,121 @@ const WIZARD_STEPS = [
     { id: 4, title: 'Review & Generate' }
 ];
 
-const ReportGenerator: React.FC<ReportGeneratorProps> = ({ params, onParamsChange, onReportUpdate, onProfileUpdate, isGenerating }) => {
+const ReportGenerator: React.FC<ReportGeneratorProps> = ({ 
+    params, 
+    onParamsChange, 
+    onReportUpdate, 
+    onProfileUpdate, 
+    isGenerating,
+    ...inquireProps
+}) => {
     const [step, setStep] = useState(1);
     const [error, setError] = useState<string | null>(null);
-    const [coPilotSuggestion, setCoPilotSuggestion] = useState<string | null>(null);
-    const [qualityScore, setQualityScore] = useState<{ score: number; recommendations: string[] } | null>(null);
+    const [aiInteractionState, setAiInteractionState] = useState<AiInteractionState>('idle');
+    
+    // Local state for region/country dropdowns
+    const [userRegion, setUserRegion] = useState('');
+    const [targetRegion, setTargetRegion] = useState('');
+    const [targetCountry, setTargetCountry] = useState('');
+    const [targetCity, setTargetCity] = useState('');
+
+    // State and ref for back-to-top button
+    const [showScroll, setShowScroll] = useState(false);
+    const scrollPanelRef = useRef<HTMLDivElement>(null);
+
+    // Effect for scroll listener
+    useEffect(() => {
+        const panel = scrollPanelRef.current;
+        if (!panel) return;
+
+        const handleScroll = () => {
+            if (panel.scrollTop > 300) {
+                setShowScroll(true);
+            } else {
+                setShowScroll(false);
+            }
+        };
+
+        panel.addEventListener('scroll', handleScroll);
+        return () => panel.removeEventListener('scroll', handleScroll);
+    }, []);
+
+    const scrollToTop = () => {
+        scrollPanelRef.current?.scrollTo({ top: 0, behavior: 'smooth' });
+    };
+
+    // This effect triggers when the user starts typing their name
+    useEffect(() => {
+        if (params.userName.trim() && aiInteractionState === 'idle') {
+            setAiInteractionState('welcomed');
+        }
+    }, [params.userName, aiInteractionState]);
+
+    // This effect triggers when the user types a report name, making the AI fully active
+    useEffect(() => {
+        if (params.reportName.trim() && aiInteractionState !== 'active') {
+            setAiInteractionState('active');
+        }
+    }, [params.reportName, aiInteractionState]);
+
+    // This effect prompts the user if they've entered a name but paused without entering a report goal
+    useEffect(() => {
+        let timer: number;
+        if (aiInteractionState === 'welcomed' && !params.reportName.trim()) {
+            timer = window.setTimeout(() => {
+                setAiInteractionState('prompted');
+            }, 5000); // 5-second delay
+        }
+        return () => clearTimeout(timer);
+    }, [aiInteractionState, params.reportName]);
 
 
     const handleChange = (field: keyof ReportParameters, value: any) => {
         onParamsChange({ ...params, [field]: value });
     };
+    
+    // Effect to find user's region when their country is set (e.g., from loading a report)
+    useEffect(() => {
+        if (params.userCountry) {
+            const region = REGIONS_AND_COUNTRIES.find(r => r.countries.includes(params.userCountry));
+            if (region && region.name !== userRegion) {
+                setUserRegion(region.name);
+            }
+        }
+    }, [params.userCountry]);
+
+    // Effect to parse the `params.region` string into the UI fields for Step 2
+    useEffect(() => {
+        const regionValue = params.region;
+        if (regionValue) {
+            const parts = regionValue.split(',').map(p => p.trim());
+            const potentialCountry = parts[parts.length - 1];
+            const foundRegionData = REGIONS_AND_COUNTRIES.find(r => r.countries.includes(potentialCountry));
+
+            if (foundRegionData) {
+                setTargetRegion(foundRegionData.name);
+                setTargetCountry(potentialCountry);
+                setTargetCity(parts.slice(0, -1).join(', '));
+            } else {
+                setTargetRegion('');
+                setTargetCountry('');
+                setTargetCity(regionValue);
+            }
+        } else {
+            setTargetRegion('');
+            setTargetCountry('');
+            setTargetCity('');
+        }
+    }, [params.region]);
+    
+    // Effect to combine the local city/country state back into `params.region`
+    useEffect(() => {
+        const combinedRegion = [targetCity, targetCountry].filter(Boolean).join(', ');
+        if (combinedRegion !== params.region) {
+            handleChange('region', combinedRegion);
+        }
+    }, [targetCity, targetCountry]);
+
 
     const handleMultiSelectToggle = (field: 'aiPersona' | 'analyticalLens' | 'toneAndStyle' | 'industry' | 'tier', value: string) => {
         const currentValues = params[field] as string[] || [];
@@ -39,114 +153,76 @@ const ReportGenerator: React.FC<ReportGeneratorProps> = ({ params, onParamsChang
             ? currentValues.filter(v => v !== value)
             : [...currentValues, value];
         
-        if ((field === 'aiPersona' || field === 'industry' || field === 'tier') && newValues.length === 0) {
-            return;
+        // This logic is a UI enhancement to prevent unselecting the last item on required fields
+        if ((field === 'aiPersona' || field === 'industry') && newValues.length === 0 && (params[field] as string[]).length > 0) {
+            return; // Don't allow unselecting the last one if it's required to have at least one
         }
 
         onParamsChange({ ...params, [field]: newValues });
     };
     
-    const handleAddPersona = (persona: string) => {
-        const currentPersonas = params.aiPersona || [];
-        if (!currentPersonas.includes(persona)) {
-            onParamsChange({ ...params, aiPersona: [...currentPersonas, persona] });
+    const getValidationErrors = useCallback((stepNum: number): string[] => {
+        const errors: string[] = [];
+        switch(stepNum) {
+            case 1:
+                if (!params.userName.trim()) errors.push("Your Name is required.");
+                // Report Name validation is now handled in nextStep
+                break;
+            case 2:
+                if (params.tier.length === 0) errors.push("At least one Report Tier must be selected.");
+                if (!params.region.trim()) errors.push("A target location is required.");
+                if (params.industry.length === 0) errors.push("At least one Core Industry must be selected.");
+                if (params.industry.includes('Custom') && !params.customIndustry?.trim()) errors.push("Custom Industry Definition is required when 'Custom' is selected.");
+                if (!params.idealPartnerProfile.trim()) errors.push("Ideal Partner Profile is required.");
+                break;
+            case 3:
+                if (!params.problemStatement.trim()) errors.push("Core Objective is required.");
+                if (params.aiPersona.length === 0) errors.push("At least one AI Analyst persona must be selected.");
+                if (params.aiPersona.includes('Custom') && !params.customAiPersona?.trim()) errors.push("Custom Persona Definition is required when 'Custom' is selected.");
+                break;
+            default:
+                break;
         }
-    };
-
-    const calculateQualityScore = useCallback(() => {
-        let score = 0;
-        const recommendations: string[] = [];
-    
-        if (params.reportName.trim()) score += 10;
-        else recommendations.push("Provide a descriptive Report Name.");
-    
-        if (params.tier.length > 0) score += 15;
-        else recommendations.push("Select at least one Report Tier to define the scope.");
-    
-        if (params.region.trim()) score += 10;
-        else recommendations.push("Specify a Target Region for focused analysis.");
-    
-        if (params.industry.length > 0) score += 10;
-        else recommendations.push("Choose a Core Industry to guide the search.");
-    
-        if (params.idealPartnerProfile.trim().length > 50) score += 20;
-        else if (params.idealPartnerProfile.trim().length > 0) {
-            score += 10;
-            recommendations.push("Your 'Ideal Partner Profile' is brief. More detail will improve partner matching.");
-        } else {
-            recommendations.push("Describe your Ideal Partner for effective matchmaking.");
-        }
-    
-        if (params.problemStatement.trim().length > 50) score += 25;
-        else if (params.problemStatement.trim().length > 0) {
-            score += 10;
-            recommendations.push("Your 'Core Objective' is concise. Expanding on it can enhance strategic alignment.");
-        } else {
-            recommendations.push("Define a Core Objective to guide the AI's analysis.");
-        }
-    
-        if (params.aiPersona.length > 0) score += 10;
-        else recommendations.push("Select an AI Persona to frame the analysis.");
-    
-        setQualityScore({ score: Math.min(100, score), recommendations });
+        return errors;
     }, [params]);
 
-    useEffect(() => {
-        if (params.problemStatement.length < 30) {
-            setCoPilotSuggestion(null);
-            return;
-        }
-        const statement = params.problemStatement.toLowerCase();
-        let suggestion: string | null = null;
-        if (statement.includes('policy') || statement.includes('risk') || statement.includes('stability')) {
-            suggestion = 'Geopolitical Strategist';
-        } else if (statement.includes('investment') || statement.includes('market') || statement.includes('roi') || statement.includes('scale')) {
-            suggestion = 'Venture Capitalist';
-        } else if (statement.includes('economic') || statement.includes('supply chain') || statement.includes('workforce') || statement.includes('gdp')) {
-            suggestion = 'Regional Economist';
-        }
-
-        if (suggestion && !params.aiPersona.includes(suggestion)) {
-            setCoPilotSuggestion(suggestion);
-        } else {
-            setCoPilotSuggestion(null);
-        }
-    }, [params.problemStatement, params.aiPersona]);
-    
-    useEffect(() => {
-        if (step === 4) {
-            calculateQualityScore();
-        }
-    }, [params, step, calculateQualityScore]);
-
-
-    const isStepValid = (stepNum: number) => {
-        switch(stepNum) {
-            case 1: return params.reportName.trim() !== '' && params.userName.trim() !== '';
-            case 2: return params.tier.length > 0 && params.region.trim() !== '' && params.industry.length > 0 && params.idealPartnerProfile.trim() !== '' && (!params.industry.includes('Custom') || !!params.customIndustry?.trim());
-            case 3: return params.problemStatement.trim() !== '' && params.aiPersona.length > 0 && (!params.aiPersona.includes('Custom') || !!params.customAiPersona?.trim());
-            default: return true;
-        }
-    };
-
     const nextStep = () => {
-        if (isStepValid(step)) {
-            setError(null);
+        setError(null);
+        scrollToTop();
+
+        // Custom validation for Step 1's interactive AI flow
+        if (step === 1) {
+            if (!params.reportName.trim() && aiInteractionState !== 'answeredPrompt' && aiInteractionState !== 'active') {
+                setError("Please provide a Report Name or respond to the Nexus AI assistant's prompt before proceeding.");
+                setAiInteractionState('prompted'); // Force the prompt if user clicks next too early
+                return;
+            }
+        }
+
+        const validationErrors = getValidationErrors(step);
+        if (validationErrors.length === 0) {
             if (step < WIZARD_STEPS.length) setStep(s => s + 1);
         } else {
-            setError("Please complete all required fields before proceeding.");
+            setError(validationErrors.join(' '));
         }
     };
 
     const prevStep = () => {
         setError(null);
+        scrollToTop();
         if (step > 1) setStep(s => s - 1);
     };
 
     const handleGenerateReport = useCallback(async () => {
         setError(null);
-        if (!isStepValid(1) || !isStepValid(2) || !isStepValid(3)) {
-            setError("Some steps are incomplete. Please go back and fill all required fields.");
+        const allErrors = [
+            ...getValidationErrors(1),
+            ...getValidationErrors(2),
+            ...getValidationErrors(3),
+        ];
+
+        if (allErrors.length > 0) {
+            setError("Some steps are incomplete. Please go back and fill all required fields. Missing: " + allErrors.join(', '));
             return;
         }
         
@@ -174,7 +250,7 @@ const ReportGenerator: React.FC<ReportGeneratorProps> = ({ params, onParamsChang
             setError(errorMessage);
             onReportUpdate(params, '', errorMessage, false);
         }
-    }, [params, onReportUpdate, onProfileUpdate]);
+    }, [params, onReportUpdate, onProfileUpdate, getValidationErrors]);
 
     const inputStyles = "w-full p-3 bg-nexus-surface-700 border border-nexus-border-medium rounded-lg focus:ring-2 focus:ring-nexus-accent-gold focus:outline-none transition placeholder:text-nexus-text-muted";
     const labelStyles = "block text-sm font-medium text-nexus-text-secondary mb-2";
@@ -191,10 +267,25 @@ const ReportGenerator: React.FC<ReportGeneratorProps> = ({ params, onParamsChang
                             <div><label className={labelStyles}>Your Name *</label><input type="text" value={params.userName} onChange={e => handleChange('userName', e.target.value)} className={inputStyles} placeholder="e.g., Jane Doe" /></div>
                             <div><label className={labelStyles}>Department</label><input type="text" value={params.userDepartment} onChange={e => handleChange('userDepartment', e.target.value)} className={inputStyles} placeholder="e.g., Investment Promotion" /></div>
                         </div>
-                        <div className="mt-4"><label className={labelStyles}>Report Name *</label><input type="text" value={params.reportName} onChange={e => handleChange('reportName', e.target.value)} className={inputStyles} placeholder="e.g., AgriTech Partners for Mindanao" /></div>
+                        <div className="mt-4"><label className={labelStyles}>Report Name / Goal *</label><input type="text" value={params.reportName} onChange={e => handleChange('reportName', e.target.value)} className={inputStyles} placeholder="e.g., AgriTech Partners for Mindanao" /></div>
                         <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mt-4">
                             <div><label className={labelStyles}>Organization Type</label><select value={params.organizationType} onChange={e => handleChange('organizationType', e.target.value)} className={inputStyles}>{ORGANIZATION_TYPES.map(o => <option key={o} value={o}>{o}</option>)}</select></div>
-                            <div><label className={labelStyles}>Your Country</label><select value={params.userCountry} onChange={e => handleChange('userCountry', e.target.value)} className={inputStyles}>{COUNTRIES.map(c => <option key={c} value={c}>{c}</option>)}</select></div>
+                             <div>
+                                <label className={labelStyles}>Your Region</label>
+                                <select value={userRegion} onChange={e => { setUserRegion(e.target.value); handleChange('userCountry', ''); }} className={inputStyles}>
+                                    <option value="">Select Region</option>
+                                    {REGIONS_AND_COUNTRIES.map(region => <option key={region.name} value={region.name}>{region.name}</option>)}
+                                </select>
+                            </div>
+                        </div>
+                         <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mt-4">
+                             <div>
+                                <label className={labelStyles}>Your Country</label>
+                                <select value={params.userCountry} onChange={e => handleChange('userCountry', e.target.value)} disabled={!userRegion} className={`${inputStyles} disabled:bg-nexus-border-subtle`}>
+                                    <option value="">Select Country</option>
+                                    {REGIONS_AND_COUNTRIES.find(r => r.name === userRegion)?.countries.map(country => <option key={country} value={country}>{country}</option>)}
+                                </select>
+                            </div>
                         </div>
                     </Card>
                 );
@@ -202,49 +293,9 @@ const ReportGenerator: React.FC<ReportGeneratorProps> = ({ params, onParamsChang
                 return (
                     <Card>
                         <h3 className="text-xl font-bold text-nexus-text-primary mb-1">The Opportunity & Report Tiers</h3>
-                        <p className="text-nexus-text-secondary mb-4 text-sm">Define the "what" and "where" of the opportunity, then select the depth of analysis required.</p>
+                        <p className="text-nexus-text-secondary mb-4 text-sm">First, select the depth of analysis required, then define the "what" and "where" of the opportunity.</p>
                         
-                        <h4 className="text-lg font-semibold text-nexus-text-primary mb-3 mt-4">Opportunity Details</h4>
-                        <div className="grid md:grid-cols-2 gap-4">
-                            <div>
-                                <label className={labelStyles}>Target Regional City / Area *</label>
-                                <input type="text" value={params.region} onChange={e => handleChange('region', e.target.value)} className={inputStyles} placeholder="e.g., Davao City, Philippines" />
-                            </div>
-                            <div>
-                                <label className={labelStyles}>Analysis Timeframe</label>
-                                <select value={params.analysisTimeframe} onChange={e => handleChange('analysisTimeframe', e.target.value)} className={inputStyles}>
-                                    <option>Any Time</option><option>Last 6 Months</option><option>Last 12 Months</option><option>Last 2 Years</option>
-                                </select>
-                            </div>
-                        </div>
-
                         <div className="mt-4">
-                            <label className={labelStyles}>Core Industry Focus (Select one or more) *</label>
-                            <div className="grid grid-cols-4 md:grid-cols-6 gap-2">
-                                {INDUSTRIES.map((industry) => (
-                                    <button key={industry.id} onClick={() => handleMultiSelectToggle('industry', industry.id)} className={`p-3 rounded-lg border-2 transition-all flex flex-col items-center text-center h-full group ${params.industry.includes(industry.id) ? 'border-nexus-accent-gold bg-nexus-accent-gold/5 scale-105 shadow-md' : 'border-nexus-border-medium hover:border-nexus-border-subtle bg-white hover:bg-nexus-surface-800'}`}>
-                                        <industry.icon className={`w-8 h-8 mb-2 transition-colors ${params.industry.includes(industry.id) ? 'text-nexus-accent-gold' : 'text-nexus-text-secondary group-hover:text-nexus-text-primary'}`} />
-                                        <span className="font-semibold text-nexus-text-primary text-xs leading-tight">{industry.title}</span>
-                                    </button>
-                                ))}
-                                <button onClick={() => handleMultiSelectToggle('industry', 'Custom')} className={`p-3 rounded-lg border-2 transition-all flex flex-col items-center text-center h-full group ${params.industry.includes('Custom') ? 'border-nexus-accent-gold bg-nexus-accent-gold/5 scale-105 shadow-md' : 'border-nexus-border-medium hover:border-nexus-border-subtle bg-white hover:bg-nexus-surface-800'}`} title="Define a custom industry">
-                                    <CustomIndustryIcon className={`w-8 h-8 mb-2 transition-colors ${params.industry.includes('Custom') ? 'text-nexus-accent-gold' : 'text-nexus-text-secondary group-hover:text-nexus-text-primary'}`} />
-                                    <span className="font-semibold text-nexus-text-primary text-xs leading-tight">Custom</span>
-                                </button>
-                            </div>
-                        </div>
-                        {params.industry.includes('Custom') && (
-                            <div className="mt-4">
-                                <label className={labelStyles}>Custom Industry Definition *</label>
-                                <textarea value={params.customIndustry} onChange={e => handleChange('customIndustry', e.target.value)} rows={2} className={inputStyles} placeholder="Describe the custom industry or niche sector..." />
-                            </div>
-                        )}
-                        <div className="mt-6">
-                            <label className={labelStyles}>Ideal Partner Profile *</label>
-                            <textarea value={params.idealPartnerProfile} onChange={e => handleChange('idealPartnerProfile', e.target.value)} rows={4} className={inputStyles} placeholder="Describe your ideal partner in detail (e.g., size, technologies, target markets)..." />
-                        </div>
-                        
-                        <div className="mt-6 pt-6 border-t border-nexus-border-medium">
                             <h4 className="text-lg font-semibold text-nexus-text-primary mb-3">Report Tiers (The 'How') *</h4>
                             <p className="text-nexus-text-secondary mb-4 text-sm">Select one or more report types. The AI will synthesize them into a single, comprehensive blueprint.</p>
                             <div className="grid md:grid-cols-2 gap-4">
@@ -267,6 +318,64 @@ const ReportGenerator: React.FC<ReportGeneratorProps> = ({ params, onParamsChang
                             ))}
                             </div>
                         </div>
+
+                        <div className="mt-6 pt-6 border-t border-nexus-border-medium">
+                            <h4 className="text-lg font-semibold text-nexus-text-primary mb-3">Opportunity Details</h4>
+                            <div className="grid md:grid-cols-2 gap-4">
+                                <div>
+                                    <label className={labelStyles}>Target Region *</label>
+                                    <select value={targetRegion} onChange={e => { setTargetRegion(e.target.value); setTargetCountry(''); setTargetCity(''); }} className={inputStyles}>
+                                        <option value="">Select Region</option>
+                                        {REGIONS_AND_COUNTRIES.map(region => <option key={region.name} value={region.name}>{region.name}</option>)}
+                                    </select>
+                                </div>
+                                <div>
+                                    <label className={labelStyles}>Target Country *</label>
+                                     <select value={targetCountry} onChange={e => setTargetCountry(e.target.value)} disabled={!targetRegion} className={`${inputStyles} disabled:bg-nexus-border-subtle`}>
+                                        <option value="">Select Country</option>
+                                        {REGIONS_AND_COUNTRIES.find(r => r.name === targetRegion)?.countries.map(country => <option key={country} value={country}>{country}</option>)}
+                                    </select>
+                                </div>
+                            </div>
+                            <div className="grid md:grid-cols-2 gap-4 mt-4">
+                               <div>
+                                    <label className={labelStyles}>Target City / Area</label>
+                                    <input type="text" value={targetCity} onChange={e => setTargetCity(e.target.value)} className={inputStyles} placeholder="e.g., Davao City" />
+                                </div>
+                                <div>
+                                    <label className={labelStyles}>Analysis Timeframe</label>
+                                    <select value={params.analysisTimeframe} onChange={e => handleChange('analysisTimeframe', e.target.value)} className={inputStyles}>
+                                        <option>Any Time</option><option>Last 6 Months</option><option>Last 12 Months</option><option>Last 2 Years</option>
+                                    </select>
+                                </div>
+                            </div>
+
+                            <div className="mt-4">
+                                <label className={labelStyles}>Core Industry Focus (Select one or more) *</label>
+                                <div className="grid grid-cols-4 md:grid-cols-6 gap-2">
+                                    {INDUSTRIES.map((industry) => (
+                                        <button key={industry.id} onClick={() => handleMultiSelectToggle('industry', industry.id)} className={`p-3 rounded-lg border-2 transition-all flex flex-col items-center text-center h-full group ${params.industry.includes(industry.id) ? 'border-nexus-accent-gold bg-nexus-accent-gold/5 scale-105 shadow-md' : 'border-nexus-border-medium hover:border-nexus-border-subtle bg-white hover:bg-nexus-surface-800'}`}>
+                                            <industry.icon className={`w-8 h-8 mb-2 transition-colors ${params.industry.includes(industry.id) ? 'text-nexus-accent-gold' : 'text-nexus-text-secondary group-hover:text-nexus-text-primary'}`} />
+                                            <span className="font-semibold text-nexus-text-primary text-xs leading-tight">{industry.title}</span>
+                                        </button>
+                                    ))}
+                                    <button onClick={() => handleMultiSelectToggle('industry', 'Custom')} className={`p-3 rounded-lg border-2 transition-all flex flex-col items-center text-center h-full group ${params.industry.includes('Custom') ? 'border-nexus-accent-gold bg-nexus-accent-gold/5 scale-105 shadow-md' : 'border-nexus-border-medium hover:border-nexus-border-subtle bg-white hover:bg-nexus-surface-800'}`} title="Define a custom industry">
+                                        <CustomIndustryIcon className={`w-8 h-8 mb-2 transition-colors ${params.industry.includes('Custom') ? 'text-nexus-accent-gold' : 'text-nexus-text-secondary group-hover:text-nexus-text-primary'}`} />
+                                        <span className="font-semibold text-nexus-text-primary text-xs leading-tight">Custom</span>
+                                    </button>
+                                </div>
+                            </div>
+                            {params.industry.includes('Custom') && (
+                                <div className="mt-4">
+                                    <label className={labelStyles}>Custom Industry Definition *</label>
+                                    <textarea value={params.customIndustry} onChange={e => handleChange('customIndustry', e.target.value)} rows={2} className={inputStyles} placeholder="Describe the custom industry or niche sector..." />
+                                </div>
+                            )}
+                            <div className="mt-6">
+                                <label className={labelStyles}>Ideal Partner Profile *</label>
+                                <textarea value={params.idealPartnerProfile} onChange={e => handleChange('idealPartnerProfile', e.target.value)} rows={4} className={inputStyles} placeholder="Describe your ideal partner in detail (e.g., size, technologies, target markets)..." />
+                            </div>
+                        </div>
                     </Card>
                 );
              case 3: // Objective & AI Analyst
@@ -278,19 +387,6 @@ const ReportGenerator: React.FC<ReportGeneratorProps> = ({ params, onParamsChang
                         <div className="mt-4">
                             <label className={labelStyles}>Define Core Objective (The 'Why') *</label>
                             <textarea value={params.problemStatement} onChange={e => handleChange('problemStatement', e.target.value)} rows={5} className={inputStyles} placeholder="Describe the primary goal. What problem are you trying to solve or what opportunity are you trying to capture?" />
-                            {coPilotSuggestion && (
-                                <div className="mt-4 p-3 bg-blue-50 border border-blue-200 rounded-lg flex items-start gap-3">
-                                    <QuestionMarkCircleIcon className="w-6 h-6 text-blue-500 flex-shrink-0 mt-1" />
-                                    <div>
-                                        <h4 className="font-semibold text-blue-800">AI Co-pilot Suggestion</h4>
-                                        <p className="text-sm text-blue-700">Based on your objective, consider adding the <strong>{coPilotSuggestion}</strong> persona for a more aligned analysis.</p>
-                                        <div className="mt-2 space-x-3">
-                                            <button onClick={() => { handleAddPersona(coPilotSuggestion); setCoPilotSuggestion(null); }} className="text-xs font-bold bg-blue-500 text-white px-2 py-1 rounded hover:bg-blue-600 transition-colors">Add Persona</button>
-                                            <button onClick={() => setCoPilotSuggestion(null)} className="text-xs text-blue-600 hover:underline">Dismiss</button>
-                                        </div>
-                                    </div>
-                                </div>
-                            )}
                         </div>
 
                         <div className="mt-6 pt-6 border-t border-nexus-border-medium">
@@ -343,47 +439,39 @@ const ReportGenerator: React.FC<ReportGeneratorProps> = ({ params, onParamsChang
                     </Card>
                 );
             case 4: // Review & Generate
-                const SummaryItem: React.FC<{label: string, value: React.ReactNode}> = ({label, value}) => (
-                    <div>
+                const isInvalid = (field: keyof ReportParameters, condition?: boolean) => {
+                    const value = params[field];
+                    if (condition === false) return false;
+                    if (Array.isArray(value)) return value.length === 0;
+                    if (typeof value === 'string') return !value.trim();
+                    return false;
+                };
+
+                const summaryItemClasses = (invalid: boolean) =>
+                    `p-2 rounded-md transition-colors ${invalid ? 'bg-red-50 border border-red-200 shadow-inner' : ''}`;
+
+
+                const SummaryItem: React.FC<{label: string, value: React.ReactNode, invalid?: boolean}> = ({label, value, invalid = false}) => (
+                    <div className={summaryItemClasses(invalid)}>
                         <p className="text-sm font-semibold text-nexus-text-secondary">{label}</p>
-                        <div className="text-nexus-text-primary pl-2">{value}</div>
+                        <div className="text-nexus-text-primary pl-2">{value || <span className="text-red-500 italic">Not Provided</span>}</div>
                     </div>
                 );
-                const scoreColor = qualityScore && qualityScore.score > 80 ? 'text-green-500' : qualityScore && qualityScore.score > 60 ? 'text-yellow-500' : 'text-red-500';
-
+                
                 return (
                      <Card>
                         <h3 className="text-xl font-bold text-nexus-text-primary mb-1">Review & Generate</h3>
-                        <p className="text-nexus-text-secondary mb-4 text-sm">Review your selections and the configuration quality score before generating the blueprint.</p>
+                        <p className="text-nexus-text-secondary mb-4 text-sm">Review your selections. The AI Co-pilot has provided a final quality score and recommendations.</p>
                         
-                        <div className="grid md:grid-cols-2 gap-6">
-                            <div className="space-y-4 p-4 bg-white border border-nexus-border-medium rounded-lg">
-                                <SummaryItem label="Report Name" value={params.reportName} />
-                                <SummaryItem label="Operator" value={`${params.userName} (${params.organizationType})`} />
-                                <SummaryItem label="Report Tiers" value={<ul className="list-disc list-inside">{params.tier.map(t => <li key={t}>{currentTiers.find(tier => tier.id === t)?.title || t}</li>)}</ul>} />
-                                <SummaryItem label="Target" value={`${params.region} — ${params.industry.filter(i=>i !== 'Custom').join(', ')}`} />
-                                {params.industry.includes('Custom') && <SummaryItem label="Custom Industry" value={params.customIndustry} />}
-                                <SummaryItem label="Core Objective" value={<p className="italic">"{params.problemStatement}"</p>} />
-                                <SummaryItem label="AI Personas" value={<ul className="list-disc list-inside">{params.aiPersona.filter(p=>p !== 'Custom').map(p => <li key={p}>{p}</li>)}</ul>} />
-                                {params.aiPersona.includes('Custom') && <SummaryItem label="Custom Persona" value={params.customAiPersona} />}
-                            </div>
-                            <div className="p-4 bg-white border border-nexus-border-medium rounded-lg flex flex-col items-center justify-center text-center">
-                                {qualityScore && (
-                                    <>
-                                        <p className="text-sm font-semibold text-nexus-text-secondary">Configuration Quality</p>
-                                        <p className={`text-7xl font-bold ${scoreColor}`}>{qualityScore.score}</p>
-                                        <p className="text-nexus-text-secondary text-sm font-semibold">out of 100</p>
-                                        {qualityScore.recommendations.length > 0 && (
-                                            <div className="mt-4 text-left w-full">
-                                                <h4 className="text-xs font-bold uppercase text-nexus-text-secondary">Recommendations:</h4>
-                                                <ul className="text-xs list-disc list-inside text-nexus-text-secondary mt-1 space-y-1">
-                                                    {qualityScore.recommendations.map((rec, i) => <li key={i}>{rec}</li>)}
-                                                </ul>
-                                            </div>
-                                        )}
-                                    </>
-                                )}
-                            </div>
+                        <div className="space-y-4 p-4 bg-white border border-nexus-border-medium rounded-lg">
+                            <SummaryItem label="Report Name" value={params.reportName} invalid={isInvalid('reportName')} />
+                            <SummaryItem label="Operator" value={`${params.userName || 'N/A'} (${params.organizationType})`} invalid={isInvalid('userName')} />
+                            <SummaryItem label="Report Tiers" value={<ul className="list-disc list-inside">{params.tier.map(t => <li key={t}>{currentTiers.find(tier => tier.id === t)?.title || t}</li>)}</ul>} invalid={isInvalid('tier')} />
+                            <SummaryItem label="Target" value={`${params.region || 'N/A'} — ${params.industry.filter(i=>i !== 'Custom').join(', ') || 'N/A'}`} invalid={isInvalid('region') || isInvalid('industry')} />
+                            <SummaryItem label="Custom Industry" value={params.customIndustry} invalid={isInvalid('customIndustry', params.industry.includes('Custom'))} />
+                            <SummaryItem label="Core Objective" value={<p className="italic">"{params.problemStatement}"</p>} invalid={isInvalid('problemStatement')} />
+                            <SummaryItem label="AI Personas" value={<ul className="list-disc list-inside">{params.aiPersona.filter(p=>p !== 'Custom').map(p => <li key={p}>{p}</li>)}</ul>} invalid={isInvalid('aiPersona')} />
+                            <SummaryItem label="Custom Persona" value={params.customAiPersona} invalid={isInvalid('customAiPersona', params.aiPersona.includes('Custom'))} />
                         </div>
                     </Card>
                 );
@@ -392,49 +480,70 @@ const ReportGenerator: React.FC<ReportGeneratorProps> = ({ params, onParamsChang
     };
 
     return (
-        <div className="max-w-4xl mx-auto px-4 md:px-8 h-full flex flex-col">
-            {/* --- Non-scrolling Header --- */}
-            <div className="flex-shrink-0 pt-4 md:pt-8">
-                <header className="text-center mb-8">
-                    <h2 className="text-4xl font-extrabold text-nexus-text-primary tracking-tighter">Intelligence Blueprint Generator</h2>
-                    <p className="mt-2 text-lg text-nexus-text-secondary max-w-2xl mx-auto">Follow the steps to configure and generate your strategic report.</p>
-                </header>
+        <div className="generator-workspace">
+            <div ref={scrollPanelRef} className="generator-panel">
+                <div className="max-w-4xl mx-auto px-4 md:px-8 h-full flex flex-col">
+                    {/* --- Non-scrolling Header --- */}
+                    <div className="flex-shrink-0 pt-4 md:pt-8">
+                        <header className="text-center mb-8">
+                            <h2 className="text-4xl font-extrabold text-nexus-text-primary tracking-tighter">Intelligence Blueprint Generator</h2>
+                            <p className="mt-2 text-lg text-nexus-text-secondary max-w-2xl mx-auto">Follow the steps to configure and generate your strategic report.</p>
+                        </header>
 
-                <div className="wizard-progress-bar">
-                    <div className="wizard-progress-line"></div>
-                    <div className="wizard-progress-line-filled" style={{ width: `${((step - 1) / (WIZARD_STEPS.length - 1)) * 100}%` }}></div>
-                    {WIZARD_STEPS.map(s => (
-                        <div key={s.id} className="wizard-progress-step" onClick={() => setStep(s.id)}>
-                            <div className={`wizard-step-circle ${step === s.id ? 'active' : (step > s.id ? 'completed' : 'inactive')}`}>
-                                {step > s.id ? '✓' : s.id}
-                            </div>
-                            <span className={`wizard-step-label ${step >= s.id ? 'active' : 'inactive'}`}>{s.title}</span>
+                        <div className="wizard-progress-bar">
+                            <div className="wizard-progress-line"></div>
+                            <div className="wizard-progress-line-filled" style={{ width: `${((step - 1) / (WIZARD_STEPS.length - 1)) * 100}%` }}></div>
+                            {WIZARD_STEPS.map(s => (
+                                <div key={s.id} className="wizard-progress-step" onClick={() => { if (!isGenerating) setStep(s.id); }}>
+                                    <div className={`wizard-step-circle ${step === s.id ? 'active' : (step > s.id ? 'completed' : 'inactive')}`}>
+                                        {step > s.id ? '✓' : s.id}
+                                    </div>
+                                    <span className={`wizard-step-label ${step >= s.id ? 'active' : 'inactive'}`}>{s.title}</span>
+                                </div>
+                            ))}
                         </div>
-                    ))}
+                    </div>
+
+                    {/* --- Scrolling Content --- */}
+                    <div className="flex-grow mt-8 pr-4 -mr-4">
+                        {renderStepContent()}
+                    </div>
+                    
+                    {/* --- Non-scrolling Footer --- */}
+                    <div className="flex-shrink-0 pt-8 pb-4 md:pb-8">
+                        {error && <p className="text-red-600 text-center mb-4 text-sm bg-red-50 p-3 rounded-md border border-red-200">{error}</p>}
+                        
+                        <div className="wizard-nav" style={{ marginTop: 0 }}>
+                            <button onClick={prevStep} disabled={step === 1 || isGenerating} className="nexus-button-secondary">Back</button>
+                            
+                            {step < WIZARD_STEPS.length ? (
+                                <button onClick={nextStep} disabled={isGenerating} className="nexus-button-primary">Next</button>
+                            ) : (
+                                <button onClick={handleGenerateReport} disabled={isGenerating} className="w-full max-w-xs bg-gradient-to-r from-nexus-accent-gold to-nexus-accent-gold-dark text-black font-bold py-3 px-8 rounded-xl text-lg shadow-lg shadow-nexus-accent-gold/30 hover:shadow-xl hover:shadow-nexus-accent-gold/50 transition-all duration-300 transform hover:scale-105 focus:outline-none focus:ring-4 focus:ring-nexus-accent-gold/50 disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-3">
+                                    {isGenerating ? <><Spinner /> Generating...</> : 'Generate Report'}
+                                </button>
+                            )}
+                        </div>
+                    </div>
                 </div>
+            </div>
+            <div className="inquire-panel">
+                <Inquire 
+                    {...inquireProps} 
+                    params={params} 
+                    wizardStep={step}
+                    aiInteractionState={aiInteractionState}
+                    onAiInteractionStateChange={setAiInteractionState}
+                />
             </div>
 
-            {/* --- Scrolling Content --- */}
-            <div className="flex-grow overflow-y-auto mt-8 pr-4 -mr-4">
-                {renderStepContent()}
-            </div>
-            
-            {/* --- Non-scrolling Footer --- */}
-            <div className="flex-shrink-0 pt-8 pb-4 md:pb-8">
-                {error && <p className="text-red-600 text-center mb-4 text-sm">{error}</p>}
-                
-                <div className="wizard-nav" style={{ marginTop: 0 }}>
-                    <button onClick={prevStep} disabled={step === 1 || isGenerating} className="nexus-button-secondary">Back</button>
-                    
-                    {step < WIZARD_STEPS.length ? (
-                        <button onClick={nextStep} disabled={!isStepValid(step) || isGenerating} className="nexus-button-primary">Next</button>
-                    ) : (
-                        <button onClick={handleGenerateReport} disabled={isGenerating || !isStepValid(1) || !isStepValid(2) || !isStepValid(3)} className="w-full max-w-xs bg-gradient-to-r from-nexus-accent-gold to-nexus-accent-gold-dark text-black font-bold py-3 px-8 rounded-xl text-lg shadow-lg shadow-nexus-accent-gold/30 hover:shadow-xl hover:shadow-nexus-accent-gold/50 transition-all duration-300 transform hover:scale-105 focus:outline-none focus:ring-4 focus:ring-nexus-accent-gold/50 disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-3">
-                            {isGenerating ? <><Spinner /> Generating...</> : 'Generate Report'}
-                        </button>
-                    )}
-                </div>
-            </div>
+            <button
+                onClick={scrollToTop}
+                className={`back-to-top-btn ${showScroll ? 'visible' : ''}`}
+                aria-label="Back to top"
+            >
+                <ArrowUpIcon className="w-6 h-6" />
+            </button>
         </div>
     );
 };

@@ -1,7 +1,7 @@
 
+
 import React, { useState } from 'react';
 import type { LiveOpportunityItem } from '../types.ts';
-// FIX: Changed to default import as useEscapeKey is a default export.
 import useEscapeKey from '../hooks/useEscapeKey.ts';
 import { CloseIcon, PlusCircleIcon } from './Icons.tsx';
 import { COUNTRIES, INDUSTRIES } from '../constants.tsx';
@@ -17,7 +17,6 @@ export const AddOpportunityModal: React.FC<AddOpportunityModalProps> = ({ isOpen
 
     const [projectName, setProjectName] = useState('');
     const [country, setCountry] = useState(COUNTRIES[0]);
-    // FIX: The 'sector' state should store the industry ID as a string, not the entire industry object.
     const [sector, setSector] = useState(INDUSTRIES[0].id);
     const [value, setValue] = useState('');
     const [summary, setSummary] = useState('');
@@ -34,7 +33,6 @@ export const AddOpportunityModal: React.FC<AddOpportunityModalProps> = ({ isOpen
         onSave({
             project_name: projectName,
             country: country,
-            // FIX: The `sector` property is now correctly passed as a string.
             sector: sector,
             value: value,
             summary: summary,
@@ -43,7 +41,6 @@ export const AddOpportunityModal: React.FC<AddOpportunityModalProps> = ({ isOpen
         // Clear form for next time
         setProjectName('');
         setCountry(COUNTRIES[0]);
-        // FIX: Reset sector state to the ID string.
         setSector(INDUSTRIES[0].id);
         setValue('');
         setSummary('');
@@ -87,9 +84,7 @@ export const AddOpportunityModal: React.FC<AddOpportunityModalProps> = ({ isOpen
                             </div>
                              <div>
                                 <label htmlFor="sector" className={labelStyles}>Sector *</label>
-                                {/* FIX: Bind select value to the string-based sector state. onChange now correctly handles string values. */}
                                 <select id="sector" value={sector} onChange={e => setSector(e.target.value)} className={inputStyles} required>
-                                    {/* FIX: Use industry ID for key and value, and title for display. */}
                                     {INDUSTRIES.map(s => <option key={s.id} value={s.id}>{s.title}</option>)}
                                 </select>
                             </div>

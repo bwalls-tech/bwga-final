@@ -33,7 +33,6 @@ export default async function handler(request: Request) {
 
     // The report generation would have identified a top partner. We simulate that here for the prompt.
     // In a real scenario, the specific partner's name would be passed.
-    // FIX: The `ReportParameters` type does not have `keyTechnologies`. Replaced with `idealPartnerProfile`. Also, ensured `params.industry` (an array) is properly joined into a string.
     const prompt = `
       **Context for Letter Generation:**
 

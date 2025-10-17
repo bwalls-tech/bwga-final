@@ -1,5 +1,3 @@
-
-
 import React, { useState, useCallback, useEffect } from 'react';
 import type { View, ReportParameters, LiveOpportunityItem, SymbiosisContext, UserProfile as UserProfileType, ChatMessage, ReportSuggestions } from './types.ts';
 import { Header } from './components/Header.tsx';
@@ -25,7 +23,7 @@ const initialReportParams: ReportParameters = {
     userName: '',
     userDepartment: '',
     organizationType: ORGANIZATION_TYPES[0],
-    userCountry: COUNTRIES[0],
+    userCountry: '',
     aiPersona: [AI_PERSONAS[0].id],
     customAiPersona: '',
     analyticalLens: [ANALYTICAL_LENSES[0]],
@@ -138,8 +136,10 @@ function App() {
           const newParams = {...prev};
           for (const key in suggestions) {
               const typedKey = key as keyof ReportSuggestions;
+              const value = suggestions[typedKey];
+              if (value === undefined) continue;
+
               if (typedKey === 'industry') {
-                  const value = suggestions[typedKey];
                    if(typeof value === 'string') {
                     const matchedIndustry = INDUSTRIES.find(i => i.id.toLowerCase() === value.toLowerCase() || i.title.toLowerCase() === value.toLowerCase());
                     if (matchedIndustry) {
@@ -150,8 +150,8 @@ function App() {
                     }
                   }
               } else {
-                  // @ts-ignore
-                  newParams[typedKey] = suggestions[typedKey];
+                  // We know from the type definition that these keys are shared and compatible.
+                  (newParams as Record<string, any>)[typedKey] = value;
               }
           }
           return newParams;
@@ -193,20 +193,10 @@ function App() {
         return <div className="view-container"><LiveOpportunities onAnalyze={handleAnalyzeOpportunity} onStartSymbiosis={handleStartSymbiosis} /></div>;
       case 'report':
         return (
-          <div className="h-full px-5">
-            <div className="intelligence-workspace">
-              <div className="inquire-panel">
-                <Inquire
-                  onApplySuggestions={handleApplySuggestions}
-                  params={reportParams}
-                  savedReports={savedReports}
-                  onSaveReport={handleSaveReport}
-                  onLoadReport={handleLoadReport}
-                  onDeleteReport={handleDeleteReport}
-                />
-              </div>
-              <div className="report-panel">
-                {isViewingReport ? (
+          <div className="h-full">
+            {isViewingReport ? (
+              <div className="intelligence-workspace">
+                <div className="report-panel">
                   <ReportViewer
                     content={reportContent}
                     parameters={reportParams}
@@ -216,17 +206,33 @@ function App() {
                     onGenerateLetter={handleGenerateLetter}
                     error={reportError}
                   />
-                ) : (
-                  <ReportGenerator
+                </div>
+                <div className="inquire-panel">
+                  <Inquire
+                    onApplySuggestions={handleApplySuggestions}
                     params={reportParams}
-                    onParamsChange={setReportParams}
-                    onReportUpdate={handleReportUpdate}
-                    isGenerating={isGeneratingReport}
-                    onProfileUpdate={setUserProfile}
+                    savedReports={savedReports}
+                    onSaveReport={handleSaveReport}
+                    onLoadReport={handleLoadReport}
+                    onDeleteReport={handleDeleteReport}
                   />
-                )}
+                </div>
               </div>
-            </div>
+            ) : (
+              <ReportGenerator
+                params={reportParams}
+                onParamsChange={setReportParams}
+                onReportUpdate={handleReportUpdate}
+                isGenerating={isGeneratingReport}
+                onProfileUpdate={setUserProfile}
+                // Pass all Inquire props down for the co-pilot view
+                onApplySuggestions={handleApplySuggestions}
+                savedReports={savedReports}
+                onSaveReport={handleSaveReport}
+                onLoadReport={handleLoadReport}
+                onDeleteReport={handleDeleteReport}
+              />
+            )}
           </div>
         );
       case 'compliance':

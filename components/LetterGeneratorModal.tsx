@@ -1,6 +1,6 @@
 
+
 import React, { useState, useEffect, useCallback } from 'react';
-// FIX: Changed to default import as useEscapeKey is a default export.
 import useEscapeKey from '../hooks/useEscapeKey.ts';
 import { CloseIcon, LetterIcon } from './Icons.tsx';
 import Spinner from './Spinner.tsx';

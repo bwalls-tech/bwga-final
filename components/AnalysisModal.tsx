@@ -1,5 +1,6 @@
 
 
+
 import React, { useState, useEffect, useMemo } from 'react';
 import { jsPDF } from 'jspdf';
 import html2canvas from 'html2canvas';
@@ -7,7 +8,6 @@ import { generateAnalysisStream } from '../services/nexusService.ts';
 import type { LiveOpportunityItem } from '../types.ts';
 import Spinner from './Spinner.tsx';
 import { CloseIcon, DownloadIcon, NexusLogo } from './Icons.tsx';
-// FIX: Changed to default import as Loader is a default export.
 import Loader from './common/Loader.tsx';
 
 interface AnalysisModalProps {
@@ -62,9 +62,7 @@ export const AnalysisModal: React.FC<AnalysisModalProps> = ({ item, region, onCl
       setReportText('');
       try {
         const stream = await generateAnalysisStream(item, region);
-        // FIX: Replaced for-await-of loop with a stream reader to fix async iterator error.
         const reader = stream.getReader();
-        // FIX: Added a TextDecoder to correctly process the stream of Uint8Array.
         const decoder = new TextDecoder();
         while (true) {
             const { done, value } = await reader.read();

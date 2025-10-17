@@ -1,9 +1,7 @@
 
 import React, { useState, useEffect, useRef } from 'react';
-// FIX: Using type import
 import type { SymbiosisContext, ChatMessage } from '../types.ts';
 import useEscapeKey from '../hooks/useEscapeKey.ts';
-// FIX: Importing icon from correct file
 import { SymbiosisIcon } from './Icons.tsx';
 
 interface SymbiosisChatModalProps {

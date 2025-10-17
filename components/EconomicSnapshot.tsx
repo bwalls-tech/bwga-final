@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect } from 'react';
 import { fetchEconomicDataForCountry } from '../services/nexusService.ts';
 import type { EconomicData } from '../types.ts';
@@ -6,6 +5,8 @@ import Spinner from './Spinner.tsx';
 
 interface EconomicSnapshotProps {
     country: string;
+    isRefining: boolean;
+    onRefineObjective: (data: EconomicData) => void;
 }
 
 const formatValue = (data: { value: number; year: string } | undefined, type: 'currency' | 'number' | 'percent') => {
@@ -53,7 +54,7 @@ const DataPoint: React.FC<{ label: string; data: { value: number; year: string }
 };
 
 
-export const EconomicSnapshot: React.FC<EconomicSnapshotProps> = ({ country }) => {
+export const EconomicSnapshot: React.FC<EconomicSnapshotProps> = ({ country, isRefining, onRefineObjective }) => {
     const [data, setData] = useState<EconomicData | null>(null);
     const [isLoading, setIsLoading] = useState(true);
     const [error, setError] = useState<string | null>(null);
@@ -83,9 +84,10 @@ export const EconomicSnapshot: React.FC<EconomicSnapshotProps> = ({ country }) =
 
     return (
         <div className="p-3 bg-gray-50 rounded-lg border border-nexus-border-subtle">
-            <h3 className="font-semibold text-nexus-text-primary text-md mb-2">
+            <h3 className="font-semibold text-nexus-text-primary text-md mb-1">
                 Economic Snapshot: <span className="text-nexus-accent-cyan">{country}</span>
             </h3>
+             <p className="text-xs text-nexus-text-secondary mb-3">Live economic indicators to provide real-world context for your report.</p>
             {isLoading && (
                 <div className="flex items-center justify-center py-4">
                     <Spinner />
@@ -98,6 +100,13 @@ export const EconomicSnapshot: React.FC<EconomicSnapshotProps> = ({ country }) =
                     <DataPoint label="Population" data={data.population} type="number" />
                     <DataPoint label="Inflation (annual %)" data={data.inflation} type="percent" />
                     <DataPoint label="FDI, net inflows (USD)" data={data.fdi} type="currency" />
+                    <button
+                        onClick={() => onRefineObjective(data)}
+                        disabled={isRefining}
+                        className="!mt-4 w-full text-xs font-semibold p-2 rounded-md bg-nexus-accent-cyan/10 text-nexus-accent-cyan hover:bg-nexus-accent-cyan/20 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+                    >
+                        {isRefining ? 'Refining...' : 'Refine Objective with this Data'}
+                    </button>
                 </div>
             )}
         </div>

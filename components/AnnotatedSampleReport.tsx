@@ -1,5 +1,4 @@
 import React from 'react';
-// FIX: Corrected import path for icon
 import { NexusLogo } from './Icons.tsx';
 
 const Annotation: React.FC<{ title: string; children: React.ReactNode }> = ({ title, children }) => (

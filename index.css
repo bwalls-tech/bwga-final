@@ -30,7 +30,7 @@
   --background-color: #ffffff;   /* Pure white for max clarity */
   --surface-color: #ffffff;      /* Pure white for cards */
   --light-surface-color: #f9fafb; /* Very light gray for subtle differentiation */
-  --primary-accent: #D4AF37;     /* Brighter, more metallic Gold */
+  --primary-accent: #F97316;     /* Brighter, more metallic Orange */
   --secondary-accent: #00529B;   /* Brighter, Royal Blue */
   --text-primary: #1a1a1a;       /* Near-black for high contrast */
   --text-secondary: #4d4d4d;    /* Dark Gray for high contrast */
@@ -234,7 +234,7 @@ body {
 /* Intelligence Workspace Layout */
 .intelligence-workspace {
   display: grid;
-  grid-template-columns: 450px 1fr;
+  grid-template-columns: 1fr 450px;
   height: 100%;
   overflow: hidden;
 }
@@ -244,7 +244,7 @@ body {
   flex-direction: column;
   height: 100%;
   background-image: linear-gradient(to bottom, var(--surface-color), var(--light-surface-color));
-  border-right: 1px solid var(--border-color);
+  border-left: 1px solid var(--border-color);
   overflow-y: auto;
 }
 
@@ -409,6 +409,20 @@ body {
     border-top: 1px solid var(--border-color);
 }
 
+/* New Layout for Report Generator with Co-Pilot */
+.generator-workspace {
+  display: grid;
+  grid-template-columns: 1fr 450px;
+  height: 100%;
+  overflow: hidden;
+}
+
+.generator-panel {
+  overflow-y: auto;
+  height: 100%;
+}
+
+
 /* --- Animations --- */
 @keyframes fadeIn {
   from { opacity: 0; transform: translateY(10px); }
@@ -418,6 +432,22 @@ body {
 .animate-fadeIn {
   animation: fadeIn 0.5s ease-out forwards;
 }
+
+@keyframes pulse-green {
+  0%, 100% {
+    opacity: 1;
+    box-shadow: 0 0 0 0 rgba(74, 222, 128, 0.7);
+  }
+  50% {
+    opacity: 0.8;
+    box-shadow: 0 0 0 4px rgba(74, 222, 128, 0);
+  }
+}
+
+.animate-pulse-green {
+  animation: pulse-green 2s infinite;
+}
+
 
 .animation-delay-200 { animation-delay: 200ms; }
 .animation-delay-400 { animation-delay: 400ms; }

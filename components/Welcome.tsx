@@ -1,7 +1,7 @@
 
 import React from 'react';
-import { NexusLogo } from './Icons.tsx';
 import Card from './common/Card.tsx';
+import { DataProfessionalIcon } from './Icons.tsx';
 
 interface WelcomeProps {
   onAccept: () => void;
@@ -12,10 +12,7 @@ export const Welcome: React.FC<WelcomeProps> = ({ onAccept }) => {
     <div className="aurora-background flex items-center justify-center min-h-screen p-4">
       <Card className="max-w-2xl w-full text-center animate-fadeIn glassmorphism-card bg-nexus-surface-800/90 backdrop-blur-md">
         <div className="flex justify-center mb-6">
-            <div className="relative">
-                <div className="absolute inset-0 bg-gradient-to-br from-nexus-accent-gold to-nexus-accent-cyan rounded-full blur-xl opacity-50"></div>
-                <NexusLogo className="w-20 h-20 text-nexus-accent-gold relative z-10" />
-            </div>
+            <DataProfessionalIcon className="w-32 h-32 text-nexus-text-primary" />
         </div>
         <h1 className="text-4xl font-extrabold text-nexus-text-primary tracking-tight">Welcome to BWGA Nexus AI</h1>
         <p className="mt-4 text-lg text-nexus-text-secondary">

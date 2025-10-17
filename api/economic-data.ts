@@ -21,7 +21,6 @@ export default async function handler(request: Request) {
     return new Response(JSON.stringify({ error: 'Country parameter is required.' }), { status: 400 });
   }
 
-  // @ts-ignore
   const countryCode = COUNTRY_CODES[countryName];
   if (!countryCode) {
     return new Response(JSON.stringify({ error: `Invalid or unsupported country: ${countryName}` }), { status: 404 });

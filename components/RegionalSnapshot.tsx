@@ -32,8 +32,6 @@ export const RegionalSnapshot: React.FC<RegionalSnapshotProps> = ({ feed }) => {
             }, {} as Record<string, number>);
 
         const sortedData = Object.entries(sectorCounts)
-            // FIX: Add an explicit return type to the map function to ensure TypeScript correctly infers `value` as a number for the sort operation.
-            // FIX: Cast value to number to resolve 'unknown' type assignment error in strict mode.
             .map(([name, value]): { name: string; value: number } => ({ name, value: value as number }))
             .sort((a, b) => b.value - a.value);
         

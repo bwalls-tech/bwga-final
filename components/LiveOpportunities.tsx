@@ -1,14 +1,11 @@
 import React, { useState, useEffect, useCallback } from 'react';
-// FIX: Corrected import paths
 import { fetchLiveOpportunities, saveUserOpportunity, getUserOpportunities, fetchPredictiveAnalysis } from '../services/nexusService.ts';
 import type { LiveOpportunityItem, SymbiosisContext, FeedPost, PredictiveAnalysis } from '../types.ts';
 import { PlusCircleIcon, GeospatialIcon, ShieldCheckIcon, BookmarkIcon, BriefcaseIcon, NexusLogo } from './Icons.tsx';
-// FIX: Changed to default import as Loader is a default export.
 import Loader from './common/Loader.tsx';
 import { AddOpportunityModal } from './AddOpportunityModal.tsx';
 import { RegionalSnapshot } from './RegionalSnapshot.tsx';
 import { DataFeedItem } from './DataFeedItem.tsx';
-// FIX: Changed to default import as Card is a default export.
 import Card from './common/Card.tsx';
 
 const PredictiveHorizonScan: React.FC<{ feed: FeedPost[] }> = ({ feed }) => {
@@ -140,7 +137,6 @@ const IntelligenceToolItem: React.FC<{ icon: React.ReactNode, title: string, chi
     </div>
 );
 
-// FIX: Define props interface for LiveOpportunities component.
 interface LiveOpportunitiesProps {
     onAnalyze: (item: LiveOpportunityItem) => void;
     onStartSymbiosis: (context: SymbiosisContext) => void;
